@@ -1,4 +1,4 @@
-﻿#define ID_SHOW_CHART 101
+#define ID_SHOW_CHART 101
 #define ID_HIDE_CHART 102
 #define ID_CLEAR_CHART 103
 #define ID_REMOVE_RECORD_CHART 104
@@ -18,7 +18,6 @@ HWND hDay, hMonthList, hDate, hSales;
 
 HHOOK hKeyboardHook = NULL;
 HWND hActiveWindow = NULL;
-
 bool showChart = false;
 
 struct Date {
@@ -163,18 +162,18 @@ void AddMenus(HWND hWnd) {
 
 void AddControls(HWND hWnd) {
 
-	CreateWindowW(L"Static", L"Sales:", WS_VISIBLE | WS_CHILD, 100, 50, 98, 38, hWnd, NULL, NULL, NULL);
-	hSales = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 200, 50, 98, 38, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"Static", L"Sales:", WS_VISIBLE | WS_CHILD, 20, 50, 58, 38, hWnd, NULL, NULL, NULL);
+	hSales = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 90, 50, 58, 38, hWnd, NULL, NULL, NULL);
 
-	CreateWindowW(L"Static", L"Day (1 - 31):", WS_VISIBLE | WS_CHILD, 100, 90, 98, 38, hWnd, NULL, NULL, NULL);
-	hDay = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 200, 90, 98, 38, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"Static", L"Day (1 - 31):", WS_VISIBLE | WS_CHILD, 20, 90, 78, 38, hWnd, NULL, NULL, NULL);
+	hDay = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 110, 90, 58, 38, hWnd, NULL, NULL, NULL);
 
-	CreateWindowW(L"Static", L"Month:", WS_VISIBLE | WS_CHILD, 100, 140, 98, 38, hWnd, NULL, NULL, NULL);
-	hMonthList = CreateWindowW(L"ComboBox", NULL, WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 200, 140, 150, 250, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"Static", L"Month:", WS_VISIBLE | WS_CHILD, 20, 140, 58, 38, hWnd, NULL, NULL, NULL);
+	hMonthList = CreateWindowW(L"ComboBox", NULL, WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 90, 140, 110, 250, hWnd, NULL, NULL, NULL);
 	FillMonths();
 
-	CreateWindowW(L"Button", L"Generate Date", WS_VISIBLE | WS_CHILD, 100, 190, 98, 38, hWnd, (HMENU)ID_CREATE_RECORD, NULL, NULL);
-	hDate = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 240, 300, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"Button", L"Generate Date", WS_VISIBLE | WS_CHILD, 20, 190, 98, 38, hWnd, (HMENU)ID_CREATE_RECORD, NULL, NULL);
+	hDate = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 20, 240, 180, 20, hWnd, NULL, NULL, NULL);
 
 	CreateWindowW(L"Button", L"Show Chart", WS_VISIBLE | WS_CHILD, 50, 400, 100, 30, hWnd, (HMENU)ID_SHOW_CHART, NULL, NULL);
 	CreateWindowW(L"Button", L"Hide Chart", WS_VISIBLE | WS_CHILD, 200, 400, 100, 30, hWnd, (HMENU)ID_HIDE_CHART, NULL, NULL);
@@ -201,7 +200,7 @@ void CreateRecord(HWND hWnd) {
 	int selectedMonthIndex = SendMessageW(hMonthList, CB_GETCURSEL, 0, 0);
 	int salesAsInt = _wtoi(sales);
 
-	if (DateArr.size() < 12) {
+	if (DateArr.size() < 9) {
 		DateArr.push_back(Date{ dayAsInt, selectedMonthIndex + 1, 2023 });
 		NumArr.push_back(salesAsInt);
 		
@@ -266,9 +265,9 @@ void CreateGraphs(HWND hWnd) {
 }
 
 void BuildColDiagram(HDC hdc) {
-	int MarginLeft = 500;
+	int MarginLeft = 280;
 	int MarginTop = 50;
-	int Width = 600;
+	int Width = 350;
 	int Height = 300;
 	int TotalWidth = Width + MarginLeft;
 	int TotalHeight = Height + MarginTop;
@@ -305,9 +304,9 @@ void BuildColDiagram(HDC hdc) {
 }
 
 void BuildPlot(HDC hdc) {
-	int MarginLeft = 600;
+	int MarginLeft = 720;
 	int MarginTop = 50;
-	int Width = 600;
+	int Width = 350;
 	int Height = 300;
 	int TotalWidth = Width + MarginLeft;
 	int TotalHeight = Height + MarginTop;
@@ -315,10 +314,16 @@ void BuildPlot(HDC hdc) {
 
 	int MaxValue = *std::max_element(NumArr.begin(), NumArr.end());
 
-	float stepX = static_cast<float>(Width) / (DateArr.size() - 1);
+	float stepX = 0;
+	if (DateArr.size() == 1) {
+		stepX = Width;
+	}
+	else {
+		stepX = static_cast<float>(Width / DateArr.size());
+	}
 	float scaleY = static_cast<float>(Height) / MaxValue;
 
-	int graphX = MarginLeft + Width;
+	int graphX = MarginLeft;
 	int graphY = MarginTop;
 
 	HPEN grayPen = CreatePen(PS_SOLID, 1, RGB(192, 192, 192));
