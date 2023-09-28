@@ -1,4 +1,4 @@
-#define ID_SHOW_CHART 101
+﻿#define ID_SHOW_CHART 101
 #define ID_HIDE_CHART 102
 #define ID_CLEAR_CHART 103
 #define ID_REMOVE_RECORD_CHART 104
@@ -104,52 +104,52 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR arts, int ncmdsho
 LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 	switch (msg)
 	{
-		case WM_COMMAND:
-			switch (wp)
-			{
-				case ID_CREATE_RECORD: {
-					CreateRecord(hWnd);
-					InvalidateRect(hWnd, NULL, TRUE);
-					break;
-				}
-				case ID_SHOW_CHART: {
-					showChart = true;
-					InvalidateRect(hWnd, NULL, TRUE);
-					break;
-				}
-				case ID_HIDE_CHART: {
-					showChart = false;
-					InvalidateRect(hWnd, NULL, TRUE);
-					break;
-				}
-				case ID_CLEAR_CHART: {
-					showChart = false;
-					ClearChart();
-					InvalidateRect(hWnd, NULL, TRUE);
-					break;
-				}
-				case ID_REMOVE_RECORD_CHART: {
-					RemoveRecord(hWnd);
-					break;
-				}
-			}
-			 break;
-
-		case WM_PAINT:
-			CreateGraphs(hWnd);	
+	case WM_COMMAND:
+		switch (wp)
+		{
+		case ID_CREATE_RECORD: {
+			CreateRecord(hWnd);
+			InvalidateRect(hWnd, NULL, TRUE);
 			break;
-
-		case WM_CREATE:
-			AddMenus(hWnd);
-			AddControls(hWnd);
+		}
+		case ID_SHOW_CHART: {
+			showChart = true;
+			InvalidateRect(hWnd, NULL, TRUE);
 			break;
-
-		case WM_DESTROY:
-			PostQuitMessage(0);
+		}
+		case ID_HIDE_CHART: {
+			showChart = false;
+			InvalidateRect(hWnd, NULL, TRUE);
 			break;
+		}
+		case ID_CLEAR_CHART: {
+			showChart = false;
+			ClearChart();
+			InvalidateRect(hWnd, NULL, TRUE);
+			break;
+		}
+		case ID_REMOVE_RECORD_CHART: {
+			RemoveRecord(hWnd);
+			break;
+		}
+		}
+		break;
 
-		default:
-			return DefWindowProcW(hWnd, msg, wp, lp);
+	case WM_PAINT:
+		CreateGraphs(hWnd);
+		break;
+
+	case WM_CREATE:
+		AddMenus(hWnd);
+		AddControls(hWnd);
+		break;
+
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+
+	default:
+		return DefWindowProcW(hWnd, msg, wp, lp);
 	}
 }
 
@@ -186,14 +186,14 @@ bool DateMatches(const Date& date, int day, int month, int year) {
 }
 
 void CreateRecord(HWND hWnd) {
-	wchar_t day[3], month[12], date[30], sales[4];
+	wchar_t day[100], month[12], date[30], sales[100];
 
 	std::wregex day_pattern(L"^(0?[1-9]|[12][0-9]|3[01])$");
-	if (!Validate(day_pattern, day, 3, L"Invalid day input. Please enter a number between 1 and 31.", hWnd, hDay))
+	if (!Validate(day_pattern, day, 100, L"Invalid day input. Please enter a number between 1 and 31.", hWnd, hDay))
 		return;
 
 	std::wregex sales_pattern(L"^(1000|([0-9]|[1-9][0-9]{0,2}))$");
-	if (!Validate(sales_pattern, sales, 4, L"Invalid sales input. Please enter a number between 0 and 999.", hWnd, hSales))
+	if (!Validate(sales_pattern, sales, 100, L"Invalid sales input. Please enter a number between 0 and 1000.", hWnd, hSales))
 		return;
 
 	int dayAsInt = _wtoi(day);
@@ -203,7 +203,7 @@ void CreateRecord(HWND hWnd) {
 	if (DateArr.size() < 9) {
 		DateArr.push_back(Date{ dayAsInt, selectedMonthIndex + 1, 2023 });
 		NumArr.push_back(salesAsInt);
-		
+
 	}
 
 	SendMessageW(hMonthList, CB_GETLBTEXT, selectedMonthIndex, (LPARAM)month);
@@ -228,10 +228,10 @@ void RemoveRecord(HWND hWnd) {
 		return;
 	}
 
-	wchar_t day[3], month[12], date[30];
+	wchar_t day[100], month[12], date[30];
 
 	std::wregex day_pattern(L"^(0?[1-9]|[12][0-9]|3[01])$");
-	if (!Validate(day_pattern, day, 3, L"Invalid day input. Please enter a number between 1 and 31.", hWnd, hDay))
+	if (!Validate(day_pattern, day, 100, L"Invalid day input. Please enter a number between 1 and 31.", hWnd, hDay))
 		return;
 
 	int dayAsInt = _wtoi(day);
@@ -351,7 +351,7 @@ void BuildPlot(HDC hdc) {
 	SelectObject(hdc, bluePen);
 	MoveToEx(hdc, graphX, graphY + Height - NumArr[0] * scaleY, NULL);
 	for (int i = 0; i < DateArr.size(); i++) {
-		int x = static_cast<int>(graphX + (i) * stepX);
+		int x = static_cast<int>(graphX + (i)*stepX);
 		int y = graphY + Height - NumArr[i] * scaleY;
 		LineTo(hdc, x, y);
 	}
