@@ -2,19 +2,23 @@
 #include <cstdlib>
 
 #define ID_FILE_WRITE 100
+#define ID_FILE_READ 101
 
 HMENU hMenu;
-HWND hResult, hSource, hWriteRes;
+HWND hResult, hSource;
+wchar_t data[100];
+int numBytesToWrite;
+wchar_t res[100];
+HANDLE writeCompleteEvent;
 
-int FileWrite(HWND hWnd);
+
 void AddControls(HWND hWnd);
 void AddMenus(HWND hWnd);
+void WriteToFileAsync(HWND hWnd);
+void ReadFromFileAsync(HWND hWnd);
+DWORD WINAPI WriteAsync(LPVOID filePointer);
+DWORD WINAPI ReadAsync(LPVOID filePointer);
 LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
-
-
-void CALLBACK WriteCompletionRoutine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped) {
-
-}
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR arts, int ncmdshow) {
 
@@ -30,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR arts, int ncmdsho
 	if (!RegisterClassW(&wc))
 		return -1;
 
-	CreateWindowW(L"Class", L"Lab_3", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 20, 20, 500, 400, NULL, NULL, NULL, NULL);
+	CreateWindowW(L"Class", L"Lab_3", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 20, 20, 500, 200, NULL, NULL, NULL, NULL);
 
 
 	MSG msg = { 0 };
@@ -49,10 +53,13 @@ LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 		switch (wp)
 		{
 		case ID_FILE_WRITE: {
-			FileWrite(hWnd);
-			InvalidateRect(hWnd, NULL, TRUE);
+            WriteToFileAsync(hWnd);
 			break;
 		}
+        case ID_FILE_READ: {
+            ReadFromFileAsync(hWnd);
+            break;
+        }
 		}
         break;
 
@@ -78,22 +85,17 @@ void AddMenus(HWND hWnd) {
 
 
 void AddControls(HWND hWnd) {
+    hSource = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 40, 40, 280, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"Button", L"Write", WS_VISIBLE | WS_CHILD, 340, 40, 100, 30, hWnd, (HMENU)ID_FILE_WRITE, NULL, NULL);
 
-	CreateWindowW(L"Static", L"Sales:", WS_VISIBLE | WS_CHILD, 20, 50, 58, 38, hWnd, NULL, NULL, NULL);
-
-	CreateWindowW(L"Button", L"Remove record", WS_VISIBLE | WS_CHILD, 100, 100, 100, 30, hWnd, (HMENU)ID_FILE_WRITE, NULL, NULL);
-    hSource = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 170, 280, 20, hWnd, NULL, NULL, NULL);
-    hResult = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 240, 280, 20, hWnd, NULL, NULL, NULL);
-
-    hWriteRes = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 200, 280, 20, hWnd, NULL, NULL, NULL);
+    hResult = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER, 40, 100, 280, 20, hWnd, NULL, NULL, NULL);
+    CreateWindowW(L"Button", L"Read", WS_VISIBLE | WS_CHILD, 340, 100, 100, 30, hWnd, (HMENU)ID_FILE_READ, NULL, NULL);
 }
 
-int FileWrite(HWND hWnd) {
+void WriteToFileAsync(HWND hWnd) {
 
-    // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
     LPCWSTR  filename = L"mapped_file.txt";
 
-    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ UTF-16 (Unicode)
     HANDLE fileHandle = CreateFile(
         filename,
         GENERIC_READ | GENERIC_WRITE,
@@ -104,17 +106,15 @@ int FileWrite(HWND hWnd) {
         NULL
     );
 
-    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
-    wchar_t data[100];
     GetWindowText(hSource, data, 100);
-    int numBytesToWrite = (wcslen(data) + 1) * sizeof(wchar_t);
+    numBytesToWrite = (wcslen(data) + 1) * sizeof(wchar_t);
 
     DWORD fileSize = numBytesToWrite;
-    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+    // Установка размера файла
     SetFilePointer(fileHandle, fileSize, NULL, FILE_BEGIN);
     SetEndOfFile(fileHandle);
 
-    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    // Отображение файла в память
     HANDLE fileMapping = CreateFileMapping(
         fileHandle,
         NULL,
@@ -124,45 +124,83 @@ int FileWrite(HWND hWnd) {
         NULL
     );
 
-    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
+    // Получаем указатель на отображенный файл
     LPVOID filePointer = MapViewOfFile(fileMapping, FILE_MAP_WRITE, 0, 0, 0);
 
+    HANDLE writeThread = CreateThread(NULL, 0, WriteAsync, filePointer,  0, NULL);
 
-    //OVERLAPPED writeOverlapped = { 0 };
-    //writeOverlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
-    //WriteFileEx(filePointer, data, numBytesToWrite, &writeOverlapped, WriteCompletionRoutine);
+    WaitForSingleObject(writeThread, INFINITE);
 
-
-   /* DWORD bytesTransferred;
-    if (GetOverlappedResult(fileHandle, &writeOverlapped, &bytesTransferred, TRUE)) {
-        SetWindowText(hWriteRes, L"Success!");
-
-        return 1;
-    }*/
-
-    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
-    CopyMemory(filePointer, data, numBytesToWrite);
-   /* LPCWSTR Data = data;
-    *(LPCWSTR*)(filePointer) = Data;
-    LPCWSTR arr = *static_cast<LPCWSTR*>(filePointer);*/
-
-    wchar_t* Buffer = new wchar_t[numBytesToWrite / sizeof(wchar_t)];
-
-
-    //DWORD bytesRead;
-    //ReadFile(filePointer, Buffer, numBytesToWrite, &bytesRead, NULL);
-
-
-    CopyMemory(Buffer, filePointer, numBytesToWrite);
-    wchar_t res[100];
-    wcscpy_s(res, Buffer);
-    wcscat_s(res, L"\0");
-    SetWindowText(hResult, res);
-
-    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    CloseHandle(writeThread);
+   
+    // Освобождаем ресурсы
     UnmapViewOfFile(filePointer);
     CloseHandle(fileMapping);
     CloseHandle(fileHandle);
+}
+
+void ReadFromFileAsync(HWND hWnd) {
+
+    LPCWSTR  filename = L"mapped_file.txt";
+
+    HANDLE fileHandle = CreateFile(
+        filename,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+        NULL
+    );
+
+    DWORD fileSize = numBytesToWrite;
+    // Установка размера файла
+    SetFilePointer(fileHandle, fileSize, NULL, FILE_BEGIN);
+    SetEndOfFile(fileHandle);
+
+    // Отображение файла в память
+    HANDLE fileMapping = CreateFileMapping(
+        fileHandle,
+        NULL,
+        PAGE_READWRITE,
+        0,
+        fileSize,
+        NULL
+    );
+
+    // Получаем указатель на отображенный файл
+    LPVOID filePointer = MapViewOfFile(fileMapping, FILE_MAP_WRITE, 0, 0, 0);
+
+    HANDLE readThread = CreateThread(NULL, 0, ReadAsync, filePointer, 0, NULL);
+
+    WaitForSingleObject(readThread, INFINITE);
+
+    CloseHandle(readThread);
+
+    SetWindowText(hResult, res);
+
+    // Освобождаем ресурсы
+    UnmapViewOfFile(filePointer);
+    CloseHandle(fileMapping);
+    CloseHandle(fileHandle);
+}
+
+
+DWORD WINAPI WriteAsync(LPVOID filePointer) {
+    CopyMemory(filePointer, data, numBytesToWrite);
+
+    SetEvent(writeCompleteEvent);
+    
+    return 0;
+}
+
+DWORD WINAPI ReadAsync(LPVOID filePointer) {
+    WaitForSingleObject(writeCompleteEvent, INFINITE);
+
+    wchar_t* Buffer = new wchar_t[numBytesToWrite / sizeof(wchar_t)];
+    CopyMemory(Buffer, filePointer, numBytesToWrite);
+    wcscpy_s(res, Buffer);
+    wcscat_s(res, L"\0");
 
     return 0;
 }
